@@ -1,0 +1,37 @@
+spring:
+  profiles:
+    active: local-keycloak
+server:
+  http2:
+    enabled: true
+management:
+  endpoint:
+    health:
+      show-details: when_authorized
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health,info
+rflux:
+  rocket-service:
+    basePath: rocket-service
+---
+spring:
+  profiles: local-keycloak
+spring.profiles.include: local,keycloak
+keycloak:
+  url: http://localhost:8000
+---
+spring:
+  profiles: keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.url}/auth/realms/rflux
+---
+spring:
+  profiles: local
+rflux:
+  rocket-service:
+    url: http://localhost:8081

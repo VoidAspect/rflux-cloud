@@ -1,0 +1,25 @@
+spring:
+  profiles:
+    active: local-keycloak
+server:
+  http2:
+    enabled: true
+---
+spring:
+  profiles: local-keycloak
+spring.profiles.include: local,keycloak
+keycloak:
+  url: http://localhost:8000
+---
+spring:
+  profiles: keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.url}/auth/realms/rflux
+---
+spring:
+  profiles: local
+server:
+  port: 8081

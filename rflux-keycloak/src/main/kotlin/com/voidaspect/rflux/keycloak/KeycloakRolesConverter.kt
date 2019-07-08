@@ -40,18 +40,14 @@ class KeycloakRolesConverter : JwtAuthenticationConverter() {
         val accountAccess = resourceAccess?.get(ACCOUNT) as Map<*, *>?
         val realmAccess: Map<String, Any>? = jwt.getClaimAsMap(REALM_ACCESS)
 
-        fun extractRoles(map: Map<*, *>?): List<String> = map?.let { access ->
-            val roles = access[ROLES] as List<*>?
-            roles?.filterIsInstance<String>()
-        } ?: emptyList()
+        fun extractRoles(map: Map<*, *>?) = map
+                ?.let { it[ROLES] as List<*>? }
+                ?.map { SimpleGrantedAuthority(ROLE_AUTHORITY_PREFIX + it) }
+                ?.let { authorities.addAll(it) }
 
-        val roles = extractRoles(clientAccess) + extractRoles(accountAccess) + extractRoles(realmAccess)
-
-        val roleAuthorities = roles
-                .map { ROLE_AUTHORITY_PREFIX + it } // spring ROLE_ convention
-                .map { SimpleGrantedAuthority(it) }
-
-        authorities.addAll(roleAuthorities)
+        extractRoles(clientAccess)
+        extractRoles(accountAccess)
+        extractRoles(realmAccess)
 
         return authorities
     }

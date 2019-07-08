@@ -47,11 +47,11 @@ class KeycloakRolesConverter : JwtAuthenticationConverter() {
 
         val roles = extractRoles(clientAccess) + extractRoles(accountAccess) + extractRoles(realmAccess)
 
-        val clientAuthorities = roles
+        val roleAuthorities = roles
                 .map { ROLE_AUTHORITY_PREFIX + it } // spring ROLE_ convention
                 .map { SimpleGrantedAuthority(it) }
 
-        authorities.addAll(clientAuthorities)
+        authorities.addAll(roleAuthorities)
 
         return authorities
     }

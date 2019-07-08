@@ -33,15 +33,15 @@ class KeycloakRolesConverter : JwtAuthenticationConverter() {
     override fun extractAuthorities(jwt: Jwt): MutableCollection<GrantedAuthority> {
         val authorities = super.extractAuthorities(jwt)
 
-        val clientId = jwt.getClaimAsString(AUTHORIZED_PARTY)
+        val clientId: String? = jwt.getClaimAsString(AUTHORIZED_PARTY)
 
         val resourceAccess: Map<String, Any>? = jwt.getClaimAsMap(RESOURCE_ACCESS)
-        val clientAccess = resourceAccess?.get(clientId) as Map<*, *>?
-        val accountAccess = resourceAccess?.get(ACCOUNT) as Map<*, *>?
+        val clientAccess: Map<*, *>? = resourceAccess?.get(clientId) as? Map<*, *>
+        val accountAccess: Map<*, *>? = resourceAccess?.get(ACCOUNT) as? Map<*, *>
         val realmAccess: Map<String, Any>? = jwt.getClaimAsMap(REALM_ACCESS)
 
         fun extractRoles(map: Map<*, *>?) = map
-                ?.let { it[ROLES] as List<*>? }
+                ?.let { it[ROLES] as? List<*> }
                 ?.map { SimpleGrantedAuthority(ROLE_AUTHORITY_PREFIX + it) }
                 ?.let { authorities.addAll(it) }
 

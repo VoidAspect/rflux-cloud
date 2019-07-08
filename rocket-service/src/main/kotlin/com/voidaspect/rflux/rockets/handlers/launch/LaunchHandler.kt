@@ -78,7 +78,7 @@ class LaunchHandler(
 
     //region helpers & extensions
 
-    private fun ServerRequest.toLaunchId(): LaunchId = this.pathVariable("id").let { LaunchId.fromString(it) }
+    private fun ServerRequest.toLaunchId(): LaunchId = LaunchId.fromString(this.pathVariable("id"))
 
     private fun <T> Mono<T>.throwNotFoundIfEmpty(launchId: LaunchId) = this
             .switchIfEmpty(Mono.error { LaunchRecordNotFoundException(launchId) })

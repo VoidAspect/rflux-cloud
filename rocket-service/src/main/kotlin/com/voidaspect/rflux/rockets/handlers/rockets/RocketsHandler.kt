@@ -107,7 +107,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
 
     //region extensions & helpers
 
-    private fun ServerRequest.toRocketId(): RocketId = this.pathVariable("id").let { RocketId.fromString(it) }
+    private fun ServerRequest.toRocketId(): RocketId = RocketId.fromString(this.pathVariable("id"))
 
     private fun Mono<Rocket.Existing>.toUpdateResponse() = this
             .flatMap(rocketsRepository::update)

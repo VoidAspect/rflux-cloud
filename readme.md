@@ -36,7 +36,7 @@ To use keycloak locally, you have to:
    * Valid Redirect URLs 
       * `http://localhost:8080/*`
 1. Create new user, set password
-1. To enable access to `/rocket-service/launch` API, add role rockets_launch
+1. To enable write access to `/rocket-service/launch` API, add role rockets_launch
 
 Oauth2 Tokens will be forwarded to the serviced behind the gateway so that they can act as OAuth 2 Resource Servers with fine-grained access control
 

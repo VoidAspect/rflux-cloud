@@ -5,6 +5,7 @@ import org.springframework.boot.actuate.autoconfigure.security.reactive.Endpoint
 import org.springframework.boot.actuate.health.HealthEndpoint
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Profile
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter
@@ -19,8 +20,7 @@ class KeycloakSecurityConfig {
 
         security.authorizeExchange()
                 .matchers(EndpointRequest.to(HealthEndpoint::class.java)).permitAll()
-                .pathMatchers("/launch/**")
-                .hasRole("rockets_launch")
+                .pathMatchers(HttpMethod.POST,"/api/launch/**").hasRole("rockets_launch")
                 .anyExchange().authenticated()
                 .and()
                 .oauth2ResourceServer().jwt()

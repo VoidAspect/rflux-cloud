@@ -9,14 +9,14 @@ interface RepositoryOperations
 
     fun findAll(): Flux<EXISTING>
 
+    operator fun get(id: ID): Mono<EXISTING>
+
+    fun contains(id: ID): Mono<Boolean>
+
     fun update(entity: EXISTING): Mono<EXISTING>
 
     fun add(entity: NEW): Mono<EXISTING>
 
-    operator fun get(id: ID): Mono<EXISTING>
-
     fun remove(id: ID): Mono<EXISTING>
-
-    fun contains(id: ID): Mono<Boolean>
 
 }

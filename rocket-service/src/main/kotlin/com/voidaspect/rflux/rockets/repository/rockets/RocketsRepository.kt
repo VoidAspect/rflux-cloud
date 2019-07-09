@@ -4,4 +4,4 @@ import com.voidaspect.rflux.rockets.model.Rocket
 import com.voidaspect.rflux.rockets.model.RocketId
 import com.voidaspect.rflux.rockets.repository.RepositoryOperations
 
-interface RocketsRepository : RepositoryOperations<Rocket, Rocket.Existing, Rocket.New, RocketId>
+interface RocketsRepository : RepositoryOperations<Rocket, RocketId>

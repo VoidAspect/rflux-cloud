@@ -1,22 +1,21 @@
 package com.voidaspect.rflux.rockets.repository
 
-import com.voidaspect.rflux.rockets.model.Identity
+import com.voidaspect.rflux.rockets.model.Stored
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-interface RepositoryOperations
-<TYPE, EXISTING : Identity<TYPE, ID>, NEW : TYPE, ID> {
+interface RepositoryOperations<T, ID> {
 
-    fun findAll(): Flux<EXISTING>
+    fun findAll(): Flux<Stored<T, ID>>
 
-    operator fun get(id: ID): Mono<EXISTING>
+    operator fun get(id: ID): Mono<Stored<T, ID>>
 
     fun contains(id: ID): Mono<Boolean>
 
-    fun update(entity: EXISTING): Mono<EXISTING>
+    fun update(id: ID, entity: T): Mono<Stored<T, ID>>
 
-    fun add(entity: NEW): Mono<EXISTING>
+    fun add(entity: T): Mono<Stored<T, ID>>
 
-    fun remove(id: ID): Mono<EXISTING>
+    fun remove(id: ID): Mono<Stored<T, ID>>
 
 }

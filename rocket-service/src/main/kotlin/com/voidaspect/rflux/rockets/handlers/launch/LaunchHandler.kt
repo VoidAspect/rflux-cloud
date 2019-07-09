@@ -8,10 +8,7 @@ import com.voidaspect.rflux.rockets.exception.rockets.RocketNotFoundException
 import com.voidaspect.rflux.rockets.exception.rockets.RocketNotReadyException
 import com.voidaspect.rflux.rockets.handlers.toOkServerResponse
 import com.voidaspect.rflux.rockets.logging.Log
-import com.voidaspect.rflux.rockets.model.Launch
-import com.voidaspect.rflux.rockets.model.LaunchId
-import com.voidaspect.rflux.rockets.model.Rocket
-import com.voidaspect.rflux.rockets.model.Status
+import com.voidaspect.rflux.rockets.model.*
 import com.voidaspect.rflux.rockets.repository.launch.LaunchRepository
 import com.voidaspect.rflux.rockets.repository.rockets.RocketsRepository
 import org.springframework.stereotype.Component
@@ -35,12 +32,17 @@ class LaunchHandler(
 
     //region public API
 
-    fun findAll(request: ServerRequest) = flux().toOkServerResponse()
+    fun findAll(request: ServerRequest) = flux()
+            .map { it.toResponse() }
+            .toOkServerResponse()
 
-    fun stream(request: ServerRequest) = flux().let { ok().bodyToServerSentEvents(it) }
+    fun stream(request: ServerRequest) = flux()
+            .map { it.toResponse() }
+            .let { ok().bodyToServerSentEvents(it) }
 
     fun get(request: ServerRequest) = request.toLaunchId()
             .let { launchRepository[it].throwNotFoundIfEmpty(it) }
+            .map { it.toResponse() }
             .toOkServerResponse()
 
     fun launch(request: ServerRequest): Mono<ServerResponse> = request
@@ -49,7 +51,7 @@ class LaunchHandler(
                 rocketsRepository[rocketId].switchIfEmpty {
                     launchError("no rocket") { RocketNotFoundException(rocketId) }
                 }.flatMap {
-                    when (it.status) {
+                    when (it.value.status) {
                         Status.LAUNCHED -> launchError("already launched") {
                             RocketAlreadyLaunchedException(rocketId)
                         }
@@ -57,16 +59,20 @@ class LaunchHandler(
                             RocketNotReadyException(rocketId)
                         }
                         Status.READY -> rocketsRepository
-                                .update(Rocket.Existing(it.id, it.warhead, it.target, Status.LAUNCHED))
+                                .update(it.id, Rocket(it.value.warhead, it.value.target, Status.LAUNCHED))
                     }
                 }
             }
             .doOnSuccess {
-                log.info("Launching rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
-                        it.id, it.status, it.target.latitude, it.target.longitude)
+                if (log.isInfoEnabled) {
+                    val rocket = it.value
+                    val target = rocket.target
+                    log.info("Launching rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
+                            it.id, rocket.status, target.latitude, target.longitude)
+                }
             }
-            .flatMap { launchRepository.add(Launch.New(it)) }
-            .flatMap { created(URI.create("/api/launch/${it.id}")).syncBody(it) }
+            .flatMap { launchRepository.add(Launch(it.value)) }
+            .flatMap { created(URI.create("/api/launch/${it.id}")).syncBody(it.toResponse()) }
 
     //endregion
 
@@ -76,18 +82,20 @@ class LaunchHandler(
 
     //endregion
 
-    //region helpers & extensions
-
-    private fun ServerRequest.toLaunchId(): LaunchId = LaunchId.fromString(this.pathVariable("id"))
-
-    private fun <T> Mono<T>.throwNotFoundIfEmpty(launchId: LaunchId) = this
-            .switchIfEmpty(Mono.error { LaunchRecordNotFoundException(launchId) })
-
-    private inline fun <reified T> launchError(
-            message: String,
-            crossinline cause: () -> RocketServiceException
-    ): Mono<T> = Mono.error { LaunchFailedException("Launch failed: $message", cause()) }
-
-    //endregion
-
 }
+
+//region helpers & extensions
+
+private fun ServerRequest.toLaunchId(): LaunchId = LaunchId.fromString(this.pathVariable("id"))
+
+private fun <T> Mono<T>.throwNotFoundIfEmpty(launchId: LaunchId) = this
+        .switchIfEmpty(Mono.error { LaunchRecordNotFoundException(launchId) })
+
+private inline fun <reified T> launchError(
+        message: String,
+        crossinline cause: () -> RocketServiceException
+): Mono<T> = Mono.error { LaunchFailedException("Launch failed: $message", cause()) }
+
+private fun Stored<Launch, LaunchId>.toResponse() = LaunchResponse(this.id, this.value)
+
+//endregion

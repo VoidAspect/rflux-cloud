@@ -31,9 +31,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
             .map { it.toResponse() }
             .let { ok().bodyToServerSentEvents(it) }
 
-    fun get(request: ServerRequest) = mono(request.toRocketId())
-            .map { it.toResponse() }
-            .toOkServerResponse()
+    fun get(request: ServerRequest) = mono(request.toRocketId()).toOkRocketResponse()
 
     fun add(request: ServerRequest): Mono<ServerResponse> = request.bodyToMono<AddRocketCommand>()
             .doOnSuccess {
@@ -44,49 +42,48 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
             .flatMap { created(URI.create("/api/rockets/${it.id}")).syncBody(it.toResponse()) }
 
     fun update(request: ServerRequest) = request.toRocketId().let { rocketId ->
-
-        request.bodyToMono<UpdateRocketCommand>().doOnSuccess {
-            log.info("Updating rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
-                    rocketId, it.warhead, it.target.latitude, it.target.longitude)
-        }.flatMapValidateStatusChange { it.status }.filterWhen {
+        val requestBody = request.bodyToMono<UpdateRocketCommand>()
+        requestBody.validateStatusChange { it.status }.filterWhen {
             rocketsRepository.contains(rocketId)
         }.throwNotFoundIfEmpty(rocketId).map {
             Rocket(it.warhead, it.target, it.status)
+        }.doOnSuccess {
+            log.info("Updating rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
+                    rocketId, it.warhead, it.target.latitude, it.target.longitude)
         }.toUpdateResponse(rocketId)
     }
 
     fun changeStatus(request: ServerRequest) = request.toRocketId().let { rocketId ->
-
-        request.bodyToMono<ChangeStatusCommand>().doOnSuccess {
+        val requestBody = request.bodyToMono<ChangeStatusCommand>()
+        requestBody.validateStatusChange { it.status }.zipWith(mono(rocketId)) { command, stored ->
+            stored.value.copy(status = command.status)
+        }.doOnSuccess {
             log.info("Changing status of rocket {} to {}", rocketId, it.status)
-        }.flatMapValidateStatusChange { it.status }.flatMap { command ->
-            mono(rocketId).map { it.value.copy(status = command.status) }
         }.toUpdateResponse(rocketId)
     }
 
     fun changeWarhead(request: ServerRequest) = request.toRocketId().let { rocketId ->
-
-        request.bodyToMono<ChangeWarheadCommand>().doOnSuccess {
+        val requestBody = request.bodyToMono<ChangeWarheadCommand>()
+        requestBody.zipWith(mono(rocketId)) { command, stored ->
+            stored.value.copy(warhead = command.warhead)
+        }.doOnSuccess {
             log.info("Changing warhead of rocket {} to {}", rocketId, it.warhead)
-        }.flatMap { command ->
-            mono(rocketId).map { it.value.copy(warhead = command.warhead) }
         }.toUpdateResponse(rocketId)
     }
 
     fun changeTarget(request: ServerRequest) = request.toRocketId().let { rocketId ->
-
-        request.bodyToMono<ChangeTargetCommand>().doOnSuccess {
+        val requestBody = request.bodyToMono<ChangeTargetCommand>()
+        requestBody.zipWith(mono(rocketId)) { command, stored ->
+            stored.value.copy(target = TargetCoordinates(command.latitude, command.longitude))
+        }.doOnSuccess {
             log.info("Changing target of rocket {} to (latitude: {}, longitude: {})",
-                    rocketId, it.latitude, it.longitude)
-        }.flatMap { command ->
-            mono(rocketId).map { it.value.copy(target = TargetCoordinates(command.latitude, command.longitude)) }
+                    rocketId, it.target.latitude, it.target.longitude)
         }.toUpdateResponse(rocketId)
     }
 
     fun remove(request: ServerRequest) = request.toRocketId()
             .let { rocketsRepository.remove(it).throwNotFoundIfEmpty(it) }
-            .map { it.toResponse() }
-            .toOkServerResponse()
+            .toOkRocketResponse()
 
     //endregion
 
@@ -100,8 +97,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
 
     private fun Mono<Rocket>.toUpdateResponse(id: RocketId) = this
             .flatMap { rocketsRepository.update(id, it) }
-            .map { it.toResponse() }
-            .toOkServerResponse()
+            .toOkRocketResponse()
 }
 
 private fun ServerRequest.toRocketId(): RocketId = RocketId.fromString(this.pathVariable("id"))
@@ -109,13 +105,14 @@ private fun ServerRequest.toRocketId(): RocketId = RocketId.fromString(this.path
 private fun <T> Mono<T>.throwNotFoundIfEmpty(rocketId: RocketId) = this
         .switchIfEmpty(Mono.error { RocketNotFoundException(rocketId) })
 
-private inline fun <reified T> Mono<T>.flatMapValidateStatusChange(
+private inline fun <reified T> Mono<T>.validateStatusChange(
         crossinline status: (T) -> Status
-) = this.flatMap {
-    when (status(it)) {
-        Status.LAUNCHED -> Mono.error { CannotChangeStatusToLaunchedException() }
-        else -> Mono.just(it)
-    }
+) = this.doOnNext {
+    if (status(it) == Status.LAUNCHED) throw CannotChangeStatusToLaunchedException()
 }
 
 private fun Stored<Rocket, RocketId>.toResponse() = RocketResponse(this.id, this.value)
+
+private fun Mono<Stored<Rocket, RocketId>>.toOkRocketResponse() = this
+        .map { it.toResponse() }
+        .toOkServerResponse()

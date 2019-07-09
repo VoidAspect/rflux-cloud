@@ -58,8 +58,7 @@ class LaunchHandler(
                         Status.NOT_READY -> launchError("rocket not ready") {
                             RocketNotReadyException(rocketId)
                         }
-                        Status.READY -> rocketsRepository
-                                .update(it.id, Rocket(it.value.warhead, it.value.target, Status.LAUNCHED))
+                        Status.READY -> rocketsRepository.update(it.id, it.value.copy(status = Status.LAUNCHED))
                     }
                 }
             }

@@ -28,9 +28,9 @@ abstract class AbstractInMemoryRepository<T, ID> : RepositoryOperations<T, ID> {
         }
     }
 
-    override operator fun get(id: ID): Mono<Stored<T, ID>> = Mono.justOrEmpty(store[id].toEntity(id))
+    override operator fun get(id: ID): Mono<Stored<T, ID>> = store[id].mono(id)
 
-    override fun remove(id: ID): Mono<Stored<T, ID>> = Mono.justOrEmpty(store.remove(id).toEntity(id))
+    override fun remove(id: ID): Mono<Stored<T, ID>> = store.remove(id).mono(id)
 
     override fun findAll(): Flux<Stored<T, ID>> = Flux
             .fromIterable(store.entries)
@@ -38,6 +38,8 @@ abstract class AbstractInMemoryRepository<T, ID> : RepositoryOperations<T, ID> {
 
     override fun contains(id: ID): Mono<Boolean> = Mono.just(store.contains(id))
 
-    private fun T?.toEntity(id: ID): Stored<T, ID>? = this?.let { Stored(id, it) }
+    private fun T?.mono(id: ID): Mono<Stored<T, ID>> = Mono.justOrEmpty(this?.stored(id))
+
+    private fun T.stored(id: ID): Stored<T, ID> = Stored(id, this)
 
 }

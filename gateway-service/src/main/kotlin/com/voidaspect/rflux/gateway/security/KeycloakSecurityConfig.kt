@@ -22,19 +22,19 @@ class KeycloakSecurityConfig(private val rfluxProperties: RfluxProperties) {
     fun securityWebFilterChain(security: ServerHttpSecurity): SecurityWebFilterChain {
 
         security.authorizeExchange()
-                .matchers(EndpointRequest.to(
-                        HealthEndpoint::class.java,
-                        InfoEndpoint::class.java)
-                ).permitAll()
-                .pathMatchers("/${rfluxProperties.authService.id}/**")
-                .permitAll()
-                .matchers(EndpointRequest.to(GatewayControllerEndpoint::class.java))
-                .hasRole("actuator_routes")
+                // open basic actuator endpoints
+                .matchers(EndpointRequest.to(HealthEndpoint::class.java, InfoEndpoint::class.java)).permitAll()
+                // allow access to auth service
+                .pathMatchers("/${rfluxProperties.authService.id}/**").permitAll()
+                // restrict gateway actuator endpoint to users with actuator_routes role
+                .matchers(EndpointRequest.to(GatewayControllerEndpoint::class.java)).hasRole("actuator_routes")
+                // all other requests are to be performed by authenticated user
                 .anyExchange().authenticated()
                 .and()
                 .oauth2ResourceServer().jwt()
                 .jwtAuthenticationConverter(jwtAuthConverter())
 
+        // configure as a stateless service
         security.securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .csrf().disable()
                 .logout().disable()

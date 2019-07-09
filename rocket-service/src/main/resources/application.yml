@@ -6,12 +6,6 @@ server:
     enabled: true
 ---
 spring:
-  profiles: local-keycloak
-spring.profiles.include: local,keycloak
-keycloak:
-  url: http://localhost:8000
----
-spring:
   profiles: keycloak
   security:
     oauth2:
@@ -23,3 +17,21 @@ spring:
   profiles: local
 server:
   port: 8081
+
+---
+spring:
+  profiles: local-keycloak
+spring.profiles.include: local,keycloak
+keycloak:
+  url: http://localhost:8000
+---
+spring:
+  profiles: local-basic-auth
+spring.profiles.include: local,basic-auth
+---
+spring:
+  profiles: basic-auth
+  security:
+    user:
+      name: devuser
+      password: devpwd

@@ -57,7 +57,7 @@ To refresh Auth token:
 ```bash
 curl -d client_id=rflux-client \
  -d refresh_token=${REFRESH_TOKEN} \
- -d grant_type=refresh_roken \
+ -d grant_type=refresh_token \
  -X POST http://localhost:8000/auth/realms/rflux/protocol/openid-connect/token
 ```
 

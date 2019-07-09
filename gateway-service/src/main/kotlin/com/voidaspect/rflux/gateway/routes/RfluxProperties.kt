@@ -7,9 +7,11 @@ class RfluxProperties {
 
     var rocketService = Service()
 
+    var authService = Service()
+
     class Service {
         lateinit var url: String
-        lateinit var basePath: String
+        lateinit var id: String
     }
 
 }

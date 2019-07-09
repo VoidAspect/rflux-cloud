@@ -14,7 +14,9 @@ management:
         include: gateway,health,info
 rflux:
   rocket-service:
-    basePath: rocket-service
+    id: rocket-service
+  auth-service:
+    id: auth-service
 ---
 spring:
   profiles: local-keycloak
@@ -29,6 +31,9 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${keycloak.url}/auth/realms/rflux
+rflux:
+  auth-service:
+    url: ${keycloak.url}
 ---
 spring:
   profiles: local

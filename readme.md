@@ -66,6 +66,6 @@ To logout:
 ```bash
 curl -d client_id=rflux-client \
  -d refresh_token=${REFRESH_TOKEN} \
- -H 'Authorization: Bearer ${AUTH_TOKEN}'\
+ -H "Authorization: Bearer ${AUTH_TOKEN}"\
  -X POST http://localhost:8000/auth/realms/rflux/protocol/openid-connect/logout
 ```

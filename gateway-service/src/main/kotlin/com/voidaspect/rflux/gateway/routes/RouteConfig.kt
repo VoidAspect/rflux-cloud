@@ -21,6 +21,7 @@ class RouteConfig(private val rfluxProperties: RfluxProperties) {
     @Bean
     fun routes(builder: RouteLocatorBuilder): RouteLocator = builder.routes()
             .service(rfluxProperties.rocketService)
+            .service(rfluxProperties.authService)
             .build()
 
     @Bean
@@ -38,16 +39,16 @@ class RouteConfig(private val rfluxProperties: RfluxProperties) {
     }
 
     private fun RouteLocatorBuilder.Builder.service(service: RfluxProperties.Service) = this
-            .route(service.basePath) { it.rewriteServicePaths(service.basePath).uri(service.url) }
+            .route(service.id) { it.rewriteServicePaths(service.id).uri(service.url) }
 
-    private fun PredicateSpec.rewriteServicePaths(basePath: String) = this
-            .path("/$basePath/**")
+    private fun PredicateSpec.rewriteServicePaths(serviceId: String) = this
+            .path("/$serviceId/**")
             .filters { gatewayFilterSpec ->
                 gatewayFilterSpec
                         // rewrite e.g. /some-service/api -> /api
-                        .rewritePath("/$basePath/", "/")
+                        .rewritePath("/$serviceId/", "/")
                         // rewrite e.g. /api/resource/id -> /some-service/api/resource/id
-                        .rewriteResponseHeader(HttpHeaders.LOCATION, "^/", "/$basePath/")
+                        .rewriteResponseHeader(HttpHeaders.LOCATION, "^/", "/$serviceId/")
             }
 
 }

@@ -40,14 +40,14 @@ To use keycloak locally, you have to:
 
 Oauth2 Tokens will be forwarded to the serviced behind the gateway so that they can act as OAuth 2 Resource Servers with fine-grained access control
 
-The gateway itself acts a Resource Server - it will accept requests with header `Authorization: Bearer {{TOKEN}}`
+The gateway itself acts a Resource Server - it will accept requests with header `Authorization: Bearer ${TOKEN}`
 
 To obtain Auth token and Refresh token, you can do (replace params to match your config):
 
 ```bash
 curl -d client_id=rflux-client \
- -d username={{username}} \
- -d password={{password}} \
+ -d username=${USERNAME} \
+ -d password=${PASSWORD} \
  -d grant_type=password \
  -X POST http://localhost:8000/auth/realms/rflux/protocol/openid-connect/token
 ```
@@ -56,7 +56,16 @@ To refresh Auth token:
 
 ```bash
 curl -d client_id=rflux-client \
- -d refresh_token={{REFRESH TOKEN}} \
+ -d refresh_token=${REFRESH_TOKEN} \
  -d grant_type=refresh_roken \
  -X POST http://localhost:8000/auth/realms/rflux/protocol/openid-connect/token
+```
+
+To logout:
+
+```bash
+curl -d client_id=rflux-client \
+ -d refresh_token=${REFRESH_TOKEN} \
+ -H 'Authorization: Bearer ${AUTH_TOKEN}'\
+ -X POST http://localhost:8000/auth/realms/rflux/protocol/openid-connect/logout
 ```

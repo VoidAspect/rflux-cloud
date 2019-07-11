@@ -91,5 +91,10 @@ internal class RocketServiceSecurityTests {
                 .headers { it.setBasicAuth(username, password) }
                 .exchange()
                 .expectStatus().isForbidden
+        rest.get()
+                .uri(LAUNCH_API)
+                .headers { it.setBasicAuth(username, password) }
+                .exchange()
+                .expectStatus().isOk
     }
 }

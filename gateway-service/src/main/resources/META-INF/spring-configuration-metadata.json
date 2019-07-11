@@ -3,6 +3,10 @@
     {
       "name": "keycloak.url",
       "type": "java.lang.String"
+    },
+    {
+      "name": "keycloak.realm",
+      "type": "java.lang.String"
     }
   ]
 }

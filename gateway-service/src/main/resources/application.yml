@@ -30,7 +30,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${keycloak.url}/auth/realms/rflux
+          issuer-uri: ${keycloak.url}/auth/realms/${keycloak.realm}
+keycloak:
+  realm: rflux
 rflux:
   auth-service:
     url: ${keycloak.url}

@@ -35,3 +35,4 @@ spring:
     user:
       name: devuser
       password: devpwd
+      roles: USER,rockets_launch

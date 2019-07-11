@@ -18,4 +18,6 @@ interface RepositoryOperations<T, ID> {
 
     fun remove(id: ID): Mono<Stored<T, ID>>
 
+    fun purge(): Mono<Void>
+
 }

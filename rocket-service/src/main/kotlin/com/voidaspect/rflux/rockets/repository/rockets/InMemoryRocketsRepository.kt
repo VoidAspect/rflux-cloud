@@ -1,14 +1,8 @@
 package com.voidaspect.rflux.rockets.repository.rockets
 
-import com.voidaspect.rflux.rockets.model.Stored
 import com.voidaspect.rflux.rockets.model.Rocket
-import com.voidaspect.rflux.rockets.model.RocketId
-import com.voidaspect.rflux.rockets.repository.AbstractInMemoryRepository
+import com.voidaspect.rflux.rockets.repository.AbstractInMemoryUUIDRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-class InMemoryRocketsRepository : RocketsRepository, AbstractInMemoryRepository<Rocket, RocketId>() {
-
-    override fun initialize(entity: Rocket) = Stored(RocketId.randomUUID(), entity)
-
-}
+class InMemoryRocketsRepository : RocketsRepository, AbstractInMemoryUUIDRepository<Rocket>()

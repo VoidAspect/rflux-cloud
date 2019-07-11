@@ -22,13 +22,16 @@ class RoutesConfig(
             "/rockets".nest {
                 accept(APPLICATION_JSON).nest {
                     GET("/", rocketsHandler::findAll)
-                    POST("/", rocketsHandler::add)
                     GET("/{id}", rocketsHandler::get)
-                    PUT("/{id}", rocketsHandler::update)
                     DELETE("/{id}", rocketsHandler::remove)
-                    PATCH("/{id}/status", rocketsHandler::changeStatus)
-                    PATCH("/{id}/warhead", rocketsHandler::changeWarhead)
-                    PATCH("/{id}/target", rocketsHandler::changeTarget)
+
+                    contentType(APPLICATION_JSON).nest {
+                        POST("/", rocketsHandler::add)
+                        PUT("/{id}", rocketsHandler::update)
+                        PATCH("/{id}/status", rocketsHandler::changeStatus)
+                        PATCH("/{id}/warhead", rocketsHandler::changeWarhead)
+                        PATCH("/{id}/target", rocketsHandler::changeTarget)
+                    }
                 }
 
                 accept(TEXT_EVENT_STREAM).and(GET("/")).invoke(rocketsHandler::stream)
@@ -38,7 +41,10 @@ class RoutesConfig(
                 accept(APPLICATION_JSON).nest {
                     GET("/", launchHandler::findAll)
                     GET("/{id}", launchHandler::get)
-                    POST("/", launchHandler::launch)
+
+                    contentType(APPLICATION_JSON).nest {
+                        POST("/", launchHandler::launch)
+                    }
                 }
 
                 accept(TEXT_EVENT_STREAM).and(GET("/")).invoke(launchHandler::stream)

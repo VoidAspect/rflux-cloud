@@ -19,10 +19,7 @@ class HttpBasicSecurityConfig {
     @Bean
     fun securityWebFilterChain(security: ServerHttpSecurity): SecurityWebFilterChain {
 
-        security.appDefault()
-                .anyExchange().authenticated()
-                .and()
-                .httpBasic()
+        security.appDefault().httpBasic()
 
         return security.build()
     }
@@ -37,10 +34,6 @@ class KeycloakSecurityConfig {
     fun securityWebFilterChain(security: ServerHttpSecurity): SecurityWebFilterChain {
 
         security.appDefault()
-                .pathMatchers(HttpMethod.POST, "/api/launch/**")
-                .hasRole("rockets_launch")
-                .anyExchange().authenticated()
-                .and()
                 .oauth2ResourceServer().jwt()
                 .jwtAuthenticationConverter(jwtAuthConverter())
 
@@ -51,10 +44,14 @@ class KeycloakSecurityConfig {
 
 }
 
-private fun ServerHttpSecurity.appDefault() = this
+private fun ServerHttpSecurity.appDefault(): ServerHttpSecurity = this
         .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
         .csrf().disable()
         .logout().disable()
         .authorizeExchange()
         .matchers(EndpointRequest.to(HealthEndpoint::class.java)).permitAll()
+        .pathMatchers(HttpMethod.POST, "/api/launch/**")
+        .hasRole("rockets_launch")
+        .anyExchange().authenticated()
+        .and()
 

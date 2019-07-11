@@ -7,7 +7,7 @@ import java.lang.Exception
 open class RocketServiceException : ResponseStatusException {
 
     constructor(
-            status: HttpStatus = HttpStatus.BAD_REQUEST,
+            status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR,
             reason: String,
             cause: Exception
     ) : super(status, reason, cause)

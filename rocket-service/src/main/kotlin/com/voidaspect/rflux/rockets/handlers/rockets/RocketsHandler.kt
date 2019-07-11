@@ -1,6 +1,7 @@
 package com.voidaspect.rflux.rockets.handlers.rockets
 
 import com.voidaspect.rflux.rockets.exception.rockets.CannotChangeStatusToLaunchedException
+import com.voidaspect.rflux.rockets.exception.rockets.RocketAlreadyLaunchedException
 import com.voidaspect.rflux.rockets.exception.rockets.RocketNotFoundException
 import com.voidaspect.rflux.rockets.handlers.toOkServerResponse
 import com.voidaspect.rflux.rockets.logging.Log
@@ -9,8 +10,7 @@ import com.voidaspect.rflux.rockets.repository.rockets.RocketsRepository
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.created
-import org.springframework.web.reactive.function.server.ServerResponse.ok
+import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import org.springframework.web.reactive.function.server.bodyToServerSentEvents
 import reactor.core.publisher.Mono
@@ -42,11 +42,11 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
             .flatMap { created(URI.create("/api/rockets/${it.id}")).syncBody(it.toResponse()) }
 
     fun update(request: ServerRequest) = request.toRocketId().let { rocketId ->
-        val requestBody = request.bodyToMono<UpdateRocketCommand>()
-        requestBody.validateStatusChange { it.status }.filterWhen {
-            rocketsRepository.contains(rocketId)
-        }.throwNotFoundIfEmpty(rocketId).map {
-            Rocket(it.warhead, it.target, it.status)
+        val validatedRequest = request
+                .bodyToMono<UpdateRocketCommand>()
+                .validateStatusChange { it.status }
+        Mono.zip(validatedRequest, notYetLaunched(rocketId)) { command, _ ->
+            Rocket(command.warhead, command.target, command.status)
         }.doOnSuccess {
             log.info("Updating rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
                     rocketId, it.warhead, it.target.latitude, it.target.longitude)
@@ -54,8 +54,10 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
     }
 
     fun changeStatus(request: ServerRequest) = request.toRocketId().let { rocketId ->
-        val requestBody = request.bodyToMono<ChangeStatusCommand>()
-        requestBody.validateStatusChange { it.status }.zipWith(mono(rocketId)) { command, stored ->
+        val validatedRequest = request
+                .bodyToMono<ChangeStatusCommand>()
+                .validateStatusChange { it.status }
+        Mono.zip(validatedRequest, notYetLaunched(rocketId)) { command, stored ->
             stored.value.copy(status = command.status)
         }.doOnSuccess {
             log.info("Changing status of rocket {} to {}", rocketId, it.status)
@@ -64,7 +66,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
 
     fun changeWarhead(request: ServerRequest) = request.toRocketId().let { rocketId ->
         val requestBody = request.bodyToMono<ChangeWarheadCommand>()
-        requestBody.zipWith(mono(rocketId)) { command, stored ->
+        requestBody.zipWith(notYetLaunched(rocketId)) { command, stored ->
             stored.value.copy(warhead = command.warhead)
         }.doOnSuccess {
             log.info("Changing warhead of rocket {} to {}", rocketId, it.warhead)
@@ -73,7 +75,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
 
     fun changeTarget(request: ServerRequest) = request.toRocketId().let { rocketId ->
         val requestBody = request.bodyToMono<ChangeTargetCommand>()
-        requestBody.zipWith(mono(rocketId)) { command, stored ->
+        requestBody.zipWith(notYetLaunched(rocketId)) { command, stored ->
             stored.value.copy(target = TargetCoordinates(command.latitude, command.longitude))
         }.doOnSuccess {
             log.info("Changing target of rocket {} to (latitude: {}, longitude: {})",
@@ -90,6 +92,10 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
     //region retrieve data
 
     private fun mono(rocketId: RocketId) = rocketsRepository[rocketId].throwNotFoundIfEmpty(rocketId)
+
+    private fun notYetLaunched(rocketId: RocketId) = mono(rocketId).doOnNext {
+        if (it.value.status == Status.LAUNCHED) throw RocketAlreadyLaunchedException(it.id)
+    }
 
     private fun flux() = rocketsRepository.findAll()
 

@@ -20,11 +20,13 @@ abstract class AbstractInMemoryRepository<T, ID> : RepositoryOperations<T, ID> {
 
     override fun add(entity: T): Mono<Stored<T, ID>> = initialize(entity).let {
         val key = it.id
-        if(store.containsKey(key)) {
-            Mono.error { IllegalStateException("Can't store new entity: duplicate key $key") }
-        } else {
-            store[key] = it.value
-            Mono.just(it)
+        contains(key).map { present ->
+            if (present) {
+                throw IllegalStateException("Can't store new entity: duplicate key $key")
+            } else {
+                store[key] = it.value
+                it
+            }
         }
     }
 
@@ -36,10 +38,15 @@ abstract class AbstractInMemoryRepository<T, ID> : RepositoryOperations<T, ID> {
             .fromIterable(store.entries)
             .map { Stored(it.key, it.value) }
 
-    override fun contains(id: ID): Mono<Boolean> = Mono.just(store.contains(id))
+    override fun contains(id: ID): Mono<Boolean> {
+        val contains = store.contains(id)
+        return Mono.just(contains)
+    }
 
     private fun T?.mono(id: ID): Mono<Stored<T, ID>> = Mono.justOrEmpty(this?.stored(id))
 
     private fun T.stored(id: ID): Stored<T, ID> = Stored(id, this)
+
+    override fun purge(): Mono<Void> = Mono.fromRunnable { store.clear() }
 
 }

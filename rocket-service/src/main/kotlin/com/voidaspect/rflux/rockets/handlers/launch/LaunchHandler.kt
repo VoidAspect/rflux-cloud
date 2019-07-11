@@ -46,8 +46,8 @@ class LaunchHandler(
             .toOkServerResponse()
 
     fun launch(request: ServerRequest): Mono<ServerResponse> = request
-            .bodyToMono<LaunchRocketsCommand>()
-            .map(LaunchRocketsCommand::rocket).flatMap { rocketId ->
+            .bodyToMono<LaunchRocketCommand>()
+            .map(LaunchRocketCommand::rocket).flatMap { rocketId ->
                 rocketsRepository[rocketId].switchIfEmpty {
                     launchError("no rocket") { RocketNotFoundException(rocketId) }
                 }.flatMap {
@@ -70,7 +70,7 @@ class LaunchHandler(
                             it.id, rocket.status, target.latitude, target.longitude)
                 }
             }
-            .flatMap { launchRepository.add(Launch(it.value)) }
+            .flatMap { launchRepository.add(Launch(it)) }
             .flatMap { created(URI.create("/api/launch/${it.id}")).syncBody(it.toResponse()) }
 
     //endregion

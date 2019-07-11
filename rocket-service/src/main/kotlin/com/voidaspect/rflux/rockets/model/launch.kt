@@ -6,6 +6,6 @@ import java.util.UUID
 typealias LaunchId = UUID
 
 data class Launch(
-        val rocket: Rocket,
+        val rocket: Stored<Rocket, RocketId>,
         val time: ZonedDateTime = ZonedDateTime.now()
 )

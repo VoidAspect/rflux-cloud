@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm")
 }
 
-group = "com.voidaspect"
+group = "com.voidaspect.rflux"
 version = "0.1"
 
 repositories {

@@ -9,7 +9,7 @@ plugins {
     kotlin("plugin.spring") version "1.3.41"
 }
 
-group = "com.voidaspect"
+group = "com.voidaspect.rflux"
 version = "0.1"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 

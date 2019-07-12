@@ -28,13 +28,14 @@ class KeycloakSecurityConfig(private val rfluxProperties: RfluxProperties) {
                 // open basic actuator endpoints
                 .matchers(EndpointRequest.to(HealthEndpoint::class.java, InfoEndpoint::class.java)).permitAll()
                 // allow access to auth service
-                .pathMatchers("/${rfluxProperties.authService.id}/**").permitAll()
+                .pathMatchers("/${rfluxProperties.authService!!.path}/**").permitAll()
                 // restrict gateway actuator endpoint to users with actuator_routes role
                 .matchers(EndpointRequest.to(GatewayControllerEndpoint::class.java)).hasRole("actuator_routes")
                 // all other requests are to be performed by authenticated user
                 .anyExchange().authenticated()
-                .and()
-                .oauth2ResourceServer().jwt()
+
+        // configure as Oauth2 resource server
+        security.oauth2ResourceServer().jwt()
                 .jwtAuthenticationConverter(jwtAuthConverter())
 
         // configure as a stateless service
@@ -43,15 +44,16 @@ class KeycloakSecurityConfig(private val rfluxProperties: RfluxProperties) {
                 .logout().disable()
 
         // configure exception handling - wrap all security-related errors to give them response body
-        security.exceptionHandling().accessDeniedHandler { _, e ->
-            Mono.error(ResponseStatusException(HttpStatus.FORBIDDEN, e.message, e))
-        }.authenticationEntryPoint { _, e ->
-            Mono.error(ResponseStatusException(HttpStatus.UNAUTHORIZED, e.message, e))
-        }
+        security.exceptionHandling()
+                .accessDeniedHandler { _, e -> responseStatusError(HttpStatus.FORBIDDEN, e) }
+                .authenticationEntryPoint { _, e -> responseStatusError(HttpStatus.UNAUTHORIZED, e) }
 
         return security.build()
     }
 
-    private fun jwtAuthConverter() = ReactiveJwtAuthenticationConverterAdapter(KeycloakRolesConverter())
-
 }
+
+private fun jwtAuthConverter() = ReactiveJwtAuthenticationConverterAdapter(KeycloakRolesConverter())
+
+private fun responseStatusError(status: HttpStatus, e: Exception): Mono<Void> = Mono
+        .error(ResponseStatusException(status, e.message, e))

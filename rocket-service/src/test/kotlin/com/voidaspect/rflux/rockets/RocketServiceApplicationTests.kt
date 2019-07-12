@@ -55,7 +55,7 @@ internal class RocketServiceApplicationTests {
 
     @Test
     fun `get rockets empty`() {
-        client.getRockets().expectBody().json("""[]""")
+        client.getRockets().expectBody().json("[]")
 
         client.getRocket(RocketId.randomUUID()).expectStatus().isNotFound
     }

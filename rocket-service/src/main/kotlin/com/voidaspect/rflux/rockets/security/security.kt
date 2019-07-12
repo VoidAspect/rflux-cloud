@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.server.resource.authentication.Reacti
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository
 import reactor.core.publisher.Mono
+import java.lang.Exception
 
 @Profile("basic-auth")
 @EnableWebFluxSecurity
@@ -43,8 +44,6 @@ class KeycloakSecurityConfig {
         return security.build()
     }
 
-    private fun jwtAuthConverter() = ReactiveJwtAuthenticationConverterAdapter(KeycloakRolesConverter())
-
 }
 
 private fun ServerHttpSecurity.appDefault(): ServerHttpSecurity = this
@@ -58,12 +57,13 @@ private fun ServerHttpSecurity.appDefault(): ServerHttpSecurity = this
         .anyExchange().authenticated()
         .and()
         .exceptionHandling()
-        .accessDeniedHandler { _, e ->
-            Mono.error(RocketServiceException(HttpStatus.FORBIDDEN, e))
-        }
-        .authenticationEntryPoint { _, e ->
-            Mono.error(RocketServiceException(HttpStatus.UNAUTHORIZED, e))
-        }
+        .accessDeniedHandler { _, e -> rocketServiceError(HttpStatus.FORBIDDEN, e) }
+        .authenticationEntryPoint { _, e -> rocketServiceError(HttpStatus.UNAUTHORIZED, e) }
         .and()
+
+private fun rocketServiceError(status: HttpStatus, e: Exception): Mono<Void> = Mono
+        .error(RocketServiceException(status, e))
+
+private fun jwtAuthConverter() = ReactiveJwtAuthenticationConverterAdapter(KeycloakRolesConverter())
 
 

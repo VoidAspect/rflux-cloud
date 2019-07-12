@@ -19,12 +19,6 @@ class RouteConfig(private val rfluxProperties: RfluxProperties) {
     private val log: Logger = LoggerFactory.getLogger(javaClass)
 
     @Bean
-    fun routes(builder: RouteLocatorBuilder): RouteLocator = builder.routes()
-            .service(rfluxProperties.rocketService)
-            .service(rfluxProperties.authService)
-            .build()
-
-    @Bean
     fun loggingFilter() = GlobalFilter { exchange, chain ->
         // Print Request
         log.info("Method: {}; URI: {}",
@@ -38,17 +32,26 @@ class RouteConfig(private val rfluxProperties: RfluxProperties) {
         })
     }
 
-    private fun RouteLocatorBuilder.Builder.service(service: RfluxProperties.Service) = this
-            .route(service.id) { it.rewriteServicePaths(service.id).uri(service.url) }
+    @Bean
+    fun routes(builder: RouteLocatorBuilder): RouteLocator = builder.routes()
+            .service(rfluxProperties.rocketService)
+            .service(rfluxProperties.authService)
+            .build()
 
-    private fun PredicateSpec.rewriteServicePaths(serviceId: String) = this
-            .path("/$serviceId/**")
+    private fun RouteLocatorBuilder.Builder.service(
+            service: RfluxProperties.Service?
+    ) = service?.let {
+        this.route(service.id) { it.rewriteServicePaths(service.path).uri(service.uri) }
+    } ?: this
+
+    private fun PredicateSpec.rewriteServicePaths(path: String) = this
+            .path("/$path/**")
             .filters { gatewayFilterSpec ->
                 gatewayFilterSpec
                         // rewrite e.g. /some-service/api -> /api
-                        .rewritePath("/$serviceId/", "/")
+                        .rewritePath("/$path", "")
                         // rewrite e.g. /api/resource/id -> /some-service/api/resource/id
-                        .rewriteResponseHeader(HttpHeaders.LOCATION, "^/", "/$serviceId/")
+                        .rewriteResponseHeader(HttpHeaders.LOCATION, "^/", "/$path/")
             }
 
 }

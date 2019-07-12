@@ -14,9 +14,8 @@ management:
         include: gateway,health,info
 rflux:
   rocket-service:
-    id: rocket-service
-  auth-service:
-    id: auth-service
+    path: rocket-service
+    id: rockets
 ---
 spring:
   profiles: local-keycloak
@@ -35,10 +34,12 @@ keycloak:
   realm: rflux
 rflux:
   auth-service:
-    url: ${keycloak.url}
+    uri: ${keycloak.url}
+    id: auth
+    path: auth-service
 ---
 spring:
   profiles: local
 rflux:
   rocket-service:
-    url: http://localhost:8081
+    uri: http://localhost:8081

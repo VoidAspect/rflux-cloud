@@ -5,13 +5,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties("rflux")
 class RfluxProperties {
 
-    var rocketService = Service()
+    var rocketService: Service? = null
 
-    var authService = Service()
+    var authService: Service? = null
 
     class Service {
-        lateinit var url: String
+        lateinit var uri: String
         lateinit var id: String
+        lateinit var path: String
     }
 
 }

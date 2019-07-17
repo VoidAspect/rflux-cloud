@@ -34,7 +34,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
     fun get(request: ServerRequest) = mono(request.toRocketId()).toOkRocketResponse()
 
     fun add(request: ServerRequest): Mono<ServerResponse> = request.bodyToMono<AddRocketCommand>()
-            .doOnSuccess {
+            .doOnNext {
                 log.info("Adding new rocket. Warhead: {}, target: (latitude: {}, longitude: {})",
                         it.warhead, it.target.latitude, it.target.longitude)
             }
@@ -47,7 +47,23 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
                 .validateStatusChange { it.status }
         Mono.zip(validatedRequest, notYetLaunched(rocketId)) { command, _ ->
             Rocket(command.warhead, command.target, command.status)
-        }.doOnSuccess {
+        }.doOnNext {
+            log.info("Updating rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
+                    rocketId, it.warhead, it.target.latitude, it.target.longitude)
+        }.toUpdateResponse(rocketId)
+    }
+
+    fun merge(request: ServerRequest) = request.toRocketId().let { rocketId ->
+        val validatedRequest = request
+                .bodyToMono<MergeRocketCommand>()
+                .validateStatusChange { it.status }
+        Mono.zip(validatedRequest, notYetLaunched(rocketId)) { command, stored ->
+            val storedRocket = stored.value
+            val warhead = command.warhead ?: storedRocket.warhead
+            val target = command.target ?: storedRocket.target
+            val status = command.status ?: storedRocket.status
+            Rocket(warhead, target, status)
+        }.doOnNext {
             log.info("Updating rocket {}. Warhead: {}, target: (latitude: {}, longitude: {})",
                     rocketId, it.warhead, it.target.latitude, it.target.longitude)
         }.toUpdateResponse(rocketId)
@@ -59,7 +75,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
                 .validateStatusChange { it.status }
         Mono.zip(validatedRequest, notYetLaunched(rocketId)) { command, stored ->
             stored.value.copy(status = command.status)
-        }.doOnSuccess {
+        }.doOnNext {
             log.info("Changing status of rocket {} to {}", rocketId, it.status)
         }.toUpdateResponse(rocketId)
     }
@@ -68,7 +84,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
         val requestBody = request.bodyToMono<ChangeWarheadCommand>()
         requestBody.zipWith(notYetLaunched(rocketId)) { command, stored ->
             stored.value.copy(warhead = command.warhead)
-        }.doOnSuccess {
+        }.doOnNext {
             log.info("Changing warhead of rocket {} to {}", rocketId, it.warhead)
         }.toUpdateResponse(rocketId)
     }
@@ -77,7 +93,7 @@ class RocketsHandler(private val rocketsRepository: RocketsRepository) {
         val requestBody = request.bodyToMono<ChangeTargetCommand>()
         requestBody.zipWith(notYetLaunched(rocketId)) { command, stored ->
             stored.value.copy(target = TargetCoordinates(command.latitude, command.longitude))
-        }.doOnSuccess {
+        }.doOnNext {
             log.info("Changing target of rocket {} to (latitude: {}, longitude: {})",
                     rocketId, it.target.latitude, it.target.longitude)
         }.toUpdateResponse(rocketId)
@@ -112,7 +128,7 @@ private fun <T> Mono<T>.throwNotFoundIfEmpty(rocketId: RocketId) = this
         .switchIfEmpty(Mono.error { RocketNotFoundException(rocketId) })
 
 private inline fun <reified T> Mono<T>.validateStatusChange(
-        crossinline status: (T) -> Status
+        crossinline status: (T) -> Status?
 ) = this.doOnNext {
     if (status(it) == Status.LAUNCHED) throw CannotChangeStatusToLaunchedException()
 }

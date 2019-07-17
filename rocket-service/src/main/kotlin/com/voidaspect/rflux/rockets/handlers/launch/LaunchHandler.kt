@@ -62,7 +62,7 @@ class LaunchHandler(
                     }
                 }
             }
-            .doOnSuccess {
+            .doOnNext {
                 if (log.isInfoEnabled) {
                     val rocket = it.value
                     val target = rocket.target

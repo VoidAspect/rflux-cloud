@@ -8,6 +8,12 @@ data class AddRocketCommand(val warhead: Warhead, val target: TargetCoordinates)
 
 data class UpdateRocketCommand(val warhead: Warhead, val status: Status, val target: TargetCoordinates)
 
+data class MergeRocketCommand(
+        val warhead: Warhead? = null,
+        val status: Status? = null,
+        val target: TargetCoordinates? = null
+)
+
 data class ChangeWarheadCommand(val warhead: Warhead)
 
 data class ChangeStatusCommand(val status: Status)

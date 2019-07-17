@@ -162,6 +162,64 @@ internal class RocketServiceApplicationTests {
     }
 
     @Test
+    fun `merge rocket`() {
+        val invalidId = RocketId.randomUUID()
+        val update = MergeRocketCommand(Warhead.NUCLEAR, Status.READY, TargetCoordinates(0.2, 0.2))
+
+        client.mergeRocket(invalidId, update)
+                .expectStatus().isNotFound
+
+        val rocket = addRocketAndVerify()
+
+        client.mergeRocket(rocket.id, update)
+                .expectStatus().isOk
+                .expectBody<RocketResponse>()
+                .isEqualTo(rocket.copy(
+                        warhead = update.warhead!!,
+                        status = update.status!!,
+                        target = update.target!!
+                ))
+    }
+
+    @Test
+    fun `merge rocket status`() {
+        val rocket = addRocketAndVerify()
+
+        val wrongStatus = Status.LAUNCHED
+        client.mergeRocket(rocket.id, MergeRocketCommand(status = wrongStatus))
+                .expectStatus().isBadRequest
+
+        val status = Status.READY
+        client.mergeRocket(rocket.id, MergeRocketCommand(status = status))
+                .expectStatus().isOk
+                .expectBody<RocketResponse>()
+                .isEqualTo(rocket.copy(status = status))
+    }
+
+
+    @Test
+    fun `merge rocket warhead`() {
+        val rocket = addRocketAndVerify()
+
+        val warhead = Warhead.NUCLEAR
+        client.mergeRocket(rocket.id, MergeRocketCommand(warhead = warhead))
+                .expectStatus().isOk
+                .expectBody<RocketResponse>()
+                .isEqualTo(rocket.copy(warhead = warhead))
+    }
+
+    @Test
+    fun `merge rocket target`() {
+        val rocket = addRocketAndVerify()
+
+        val target = TargetCoordinates(0.2, 0.2)
+        client.mergeRocket(rocket.id, MergeRocketCommand(target = target))
+                .expectStatus().isOk
+                .expectBody<RocketResponse>()
+                .isEqualTo(rocket.copy(target = target))
+    }
+
+    @Test
     fun `remove rocket`() {
         client.deleteRocket(RocketId.randomUUID())
                 .expectStatus().isNotFound
@@ -241,6 +299,9 @@ internal class RocketServiceApplicationTests {
                     .expectStatus().isBadRequest
         }, {
             client.patchRocket(rocket.id, ChangeTargetCommand(0.0, 0.0))
+                    .expectStatus().isBadRequest
+        }, {
+            client.mergeRocket(rocket.id, MergeRocketCommand(status = Status.NOT_READY))
                     .expectStatus().isBadRequest
         })
     }

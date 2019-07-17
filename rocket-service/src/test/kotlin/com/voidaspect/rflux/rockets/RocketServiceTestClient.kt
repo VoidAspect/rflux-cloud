@@ -46,6 +46,11 @@ class RocketServiceTestClient(
             body: AddRocketCommand
     ) = sendJson(ROCKETS_API, body, HttpMethod.POST)
 
+    fun mergeRocket(
+            rocketId: RocketId,
+            body: MergeRocketCommand
+    ) = sendJson("$ROCKETS_API/$rocketId", body, HttpMethod.PATCH)
+
     fun patchRocket(
             rocketId: RocketId,
             body: Any

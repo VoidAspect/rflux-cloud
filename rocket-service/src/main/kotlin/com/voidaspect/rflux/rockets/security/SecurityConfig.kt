@@ -8,34 +8,30 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatus.FORBIDDEN
+import org.springframework.http.HttpStatus.UNAUTHORIZED
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository
 import reactor.core.publisher.Mono
-import java.lang.Exception
 
-@Profile("basic-auth")
 @EnableWebFluxSecurity
-class HttpBasicSecurityConfig {
+class SecurityConfig {
 
     @Bean
-    fun securityWebFilterChain(security: ServerHttpSecurity): SecurityWebFilterChain {
+    @Profile("basic-auth")
+    fun basicAuthSecurity(security: ServerHttpSecurity): SecurityWebFilterChain {
 
         security.appDefault().httpBasic()
 
         return security.build()
     }
 
-}
-
-@Profile("keycloak")
-@EnableWebFluxSecurity
-class KeycloakSecurityConfig {
-
     @Bean
-    fun securityWebFilterChain(security: ServerHttpSecurity): SecurityWebFilterChain {
+    @Profile("keycloak")
+    fun oauth2ResourceServerSecurity(security: ServerHttpSecurity): SecurityWebFilterChain {
 
         security.appDefault()
                 .oauth2ResourceServer().jwt()
@@ -57,8 +53,8 @@ private fun ServerHttpSecurity.appDefault(): ServerHttpSecurity = this
         .anyExchange().authenticated()
         .and()
         .exceptionHandling()
-        .accessDeniedHandler { _, e -> rocketServiceError(HttpStatus.FORBIDDEN, e) }
-        .authenticationEntryPoint { _, e -> rocketServiceError(HttpStatus.UNAUTHORIZED, e) }
+        .accessDeniedHandler { _, e -> rocketServiceError(FORBIDDEN, e) }
+        .authenticationEntryPoint { _, e -> rocketServiceError(UNAUTHORIZED, e) }
         .and()
 
 private fun rocketServiceError(status: HttpStatus, e: Exception): Mono<Void> = Mono

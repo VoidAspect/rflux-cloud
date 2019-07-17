@@ -28,6 +28,7 @@ class RoutesConfig(
                     contentType(APPLICATION_JSON).nest {
                         POST("/", rocketsHandler::add)
                         PUT("/{id}", rocketsHandler::update)
+                        PATCH("/{id}", rocketsHandler::merge)
                         PATCH("/{id}/status", rocketsHandler::changeStatus)
                         PATCH("/{id}/warhead", rocketsHandler::changeWarhead)
                         PATCH("/{id}/target", rocketsHandler::changeTarget)

@@ -1,6 +1,5 @@
 package com.voidaspect.rflux.rockets
 
-import com.voidaspect.rflux.rockets.handlers.launch.LaunchResponse
 import com.voidaspect.rflux.rockets.handlers.launch.LaunchRocketCommand
 import com.voidaspect.rflux.rockets.handlers.rockets.*
 import com.voidaspect.rflux.rockets.model.LaunchId
@@ -8,7 +7,6 @@ import com.voidaspect.rflux.rockets.model.RocketId
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.test.web.reactive.server.returnResult
 import org.springframework.web.reactive.function.client.ExchangeFilterFunctions.basicAuthentication
 
 class RocketServiceTestClient(
@@ -25,12 +23,10 @@ class RocketServiceTestClient(
     //region Rockets API
 
     fun getRockets() = getJson(ROCKETS_API)
-            .expectStatus().isOk
-            .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
 
     fun getRocket(id: RocketId) = getJson("$ROCKETS_API/$id")
 
-    fun getRocketSSE() = getSSE(ROCKETS_API).returnResult<RocketResponse>()
+    fun getRocketSSE() = getSSE(ROCKETS_API)
 
     fun deleteRocket(id: RocketId) = rest
             .delete().uri("$ROCKETS_API/$id")
@@ -68,10 +64,8 @@ class RocketServiceTestClient(
     fun getLaunch(id: LaunchId) = getJson("$LAUNCH_API/$id")
 
     fun getLaunches() = getJson(LAUNCH_API)
-            .expectStatus().isOk
-            .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
 
-    fun getLaunchesSSE() = getSSE(LAUNCH_API).returnResult<LaunchResponse>()
+    fun getLaunchesSSE() = getSSE(LAUNCH_API)
 
     fun postLaunch(
             rocket: RocketId
@@ -99,7 +93,4 @@ class RocketServiceTestClient(
             .get().uri(path)
             .accept(MediaType.TEXT_EVENT_STREAM)
             .exchange()
-            .expectStatus().isOk
-            .expectHeader()
-            .contentType("${MediaType.TEXT_EVENT_STREAM_VALUE};charset=UTF-8")
 }

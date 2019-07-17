@@ -17,16 +17,14 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.reactive.server.expectBody
-import reactor.test.StepVerifier
+import org.springframework.test.web.reactive.server.returnResult
+import reactor.test.test
 import java.time.ZonedDateTime
 
 @ExtendWith(SpringExtension::class)
 @ActiveProfiles("basic-auth")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 internal class RocketServiceApplicationTests {
-
-    private val uuidPattern = Regex(
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 
     @LocalServerPort
     private var port: Int = 0
@@ -55,7 +53,10 @@ internal class RocketServiceApplicationTests {
 
     @Test
     fun `get rockets empty`() {
-        client.getRockets().expectBody().json("[]")
+        client.getRockets()
+                .expectStatus().isOk
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
+                .expectBody().json("[]")
 
         client.getRocket(RocketId.randomUUID()).expectStatus().isNotFound
     }
@@ -242,13 +243,23 @@ internal class RocketServiceApplicationTests {
     @Test
     fun `get rockets sse`() {
 
-        StepVerifier.create(client.getRocketSSE().responseBody)
+        client.getRocketSSE()
+                .expectStatus().isOk
+                .expectHeader()
+                .contentType(TEXT_EVENT_STREAM_UTF8)
+                .returnResult<RocketResponse>().responseBody
+                .test()
                 .verifyComplete()
 
         val response1 = addRocketAndVerify(Warhead.NUCLEAR, 0.10, 0.10)
         val response2 = addRocketAndVerify()
 
-        StepVerifier.create(client.getRocketSSE().responseBody)
+        client.getRocketSSE()
+                .expectStatus().isOk
+                .expectHeader()
+                .contentType(TEXT_EVENT_STREAM_UTF8)
+                .returnResult<RocketResponse>().responseBody
+                .test()
                 .recordWith { hashSetOf<RocketResponse>() }
                 .expectNextCount(2)
                 .expectRecordedMatches { it == setOf(response1, response2) }
@@ -308,7 +319,10 @@ internal class RocketServiceApplicationTests {
 
     @Test
     fun `get launches empty`() {
-        client.getLaunches().expectBody().json("""[]""")
+        client.getLaunches()
+                .expectStatus().isOk
+                .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
+                .expectBody().json("""[]""")
 
         client.getLaunch(LaunchId.randomUUID()).expectStatus().isNotFound
     }
@@ -343,14 +357,23 @@ internal class RocketServiceApplicationTests {
 
     @Test
     fun `get launches sse`() {
-
-        StepVerifier.create(client.getLaunchesSSE().responseBody)
+        client.getLaunchesSSE()
+                .expectStatus().isOk
+                .expectHeader()
+                .contentType(TEXT_EVENT_STREAM_UTF8)
+                .returnResult<LaunchResponse>().responseBody
+                .test()
                 .verifyComplete()
 
         val response1 = launchAndVerify()
         val response2 = launchAndVerify()
 
-        StepVerifier.create(client.getLaunchesSSE().responseBody)
+        client.getLaunchesSSE()
+                .expectStatus().isOk
+                .expectHeader()
+                .contentType(TEXT_EVENT_STREAM_UTF8)
+                .returnResult<LaunchResponse>().responseBody
+                .test()
                 .recordWith { hashSetOf<LaunchResponse>() }
                 .expectNextCount(2)
                 .expectRecordedMatches { it == setOf(response1, response2) }
@@ -382,7 +405,7 @@ internal class RocketServiceApplicationTests {
         val result = client.postRocket(rocket)
                 .expectStatus().isCreated
                 .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
-                .expectHeader().valueMatches("Location", "/api/rockets/${uuidPattern.pattern}")
+                .expectHeader().valueMatches("Location", "/api/rockets/$UUID_PATTERN")
                 .expectBody<RocketResponse>()
                 .returnResult()
         val response = result.responseBody!!
@@ -400,7 +423,7 @@ internal class RocketServiceApplicationTests {
         val ready = readyRocket(added.id)
         val result = client.postLaunch(ready.id)
                 .expectStatus().isCreated
-                .expectHeader().valueMatches("Location", "/api/launch/${uuidPattern.pattern}")
+                .expectHeader().valueMatches("Location", "/api/launch/$UUID_PATTERN")
                 .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
                 .expectBody<LaunchResponse>()
                 .returnResult()
@@ -415,3 +438,6 @@ internal class RocketServiceApplicationTests {
 
 }
 
+private const val UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+
+private const val TEXT_EVENT_STREAM_UTF8 = "${MediaType.TEXT_EVENT_STREAM_VALUE};charset=UTF-8"
